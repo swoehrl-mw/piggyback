@@ -1,0 +1,22 @@
+[package]
+name = "piggyback-cli"
+version = "0.1.0"
+edition = "2021"
+default-run = "piggyback"
+
+[dependencies]
+openssl = { version = '0.10', features = ["vendored"] }
+piggyback-common = {path="../piggyback-common"}
+tokio = { version = "1.20.0", features = ["macros", "rt", "net", "io-util"] }
+argh = "0.1.8"
+signal-hook = "0.3.14"
+kube = {version = "0.73.0", features = ["runtime", "ws"]}
+k8s-openapi = { version = "0.15.0", default-features = false, features = ["v1_22"] }
+serde_json = "1.0.81"
+
+
+
+
+[[bin]]
+name = "piggyback"
+path = "src/main.rs"

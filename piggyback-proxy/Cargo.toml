@@ -1,0 +1,11 @@
+[package]
+name = "piggyback-proxy"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+tokio = { version = "1.20.0", features = ["macros", "rt", "net", "io-util"] }
+signal-hook = "0.3.14"
+piggyback-common = {path="../piggyback-common"}
+

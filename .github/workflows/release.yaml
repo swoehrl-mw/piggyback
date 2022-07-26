@@ -1,0 +1,71 @@
+name: Build and Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  IMAGE_NAME: piggyback-proxy
+  GITHUB_REF: ${{ github.ref }}
+
+jobs:
+  release:
+    name: Build binaries & docker image and create new github release
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build and cross-compile binaries
+        run: |
+          cargo install cross
+          cross build --release --target x86_64-unknown-linux-musl # For amd64 we build proxy and cli binaries
+          cross build --release --bin piggyback-proxy --target aarch64-unknown-linux-musl
+          cross build --release --bin piggyback-proxy --target armv7-unknown-linux-musleabi
+          cross build --release --bin piggyback --target x86_64-pc-windows-gnu  # For Windows we only build the cli
+
+          # Prepare binaries for release artifacts
+          cp target/x86_64-unknown-linux-musl/release/piggyback piggyback-linux-amd64
+          cp target/x86_64-pc-windows-gnu/release/piggyback piggyback-windows-amd64
+
+
+      - name: Build and push image to GitHub Container Registry
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          TAG=${GITHUB_REF//refs\/tags\/v}
+
+          # Prepare structure for docker build
+          mkdir -p multiarch/linux/arm
+          cp target/x86_64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/amd64
+          cp target/armv7-unknown-linux-musleabi/release/piggyback-proxy multiarch/linux/arm/v7
+          cp target/aarch64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/arm64
+
+          docker buildx build --platform="linux/amd64,linux/arm/v7,linux/arm64" . -f Dockerfile --push -t $IMAGE_ID:$TAG
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: "${{ github.ref }}"
+          draft: true
+          prerelease: false
+          files: |
+            piggyback-linux-amd64
+            piggyback-windows-amd64

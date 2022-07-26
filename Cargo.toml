@@ -1,0 +1,15 @@
+[workspace]
+
+members = [
+    "piggyback-cli",
+    "piggyback-proxy",
+    "piggyback-common",
+]
+
+
+[profile.release]
+strip = "symbols"
+lto = true
+opt-level = 'z'  # Optimize for size.
+codegen-units = 1
+panic = 'abort'
