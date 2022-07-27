@@ -33,23 +33,24 @@ jobs:
 
       - name: Prepare cross
         run: |
-          cargo install cross
+          wget https://github.com/cross-rs/cross/releases/download/v0.2.4/cross-x86_64-unknown-linux-musl.tar.gz
+          tar xvfz cross-x86_64-unknown-linux-musl.tar.gz
 
       - name: Cross-compile binaries
         run: |
           mkdir -p multiarch/linux/arm
-          cross build --release --target x86_64-unknown-linux-musl # For amd64 we build proxy and cli binaries
+          ./cross build --release --target x86_64-unknown-linux-musl # For amd64 we build proxy and cli binaries
           cp target/x86_64-unknown-linux-musl/release/piggyback piggyback-linux-amd64
           cp target/x86_64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/amd64
           cargo clean
-          cross build --release --bin piggyback-proxy --target aarch64-unknown-linux-musl
+          ./cross build --release --bin piggyback-proxy --target aarch64-unknown-linux-musl
           cp target/aarch64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/arm64
           cargo clean
-          cross build --release --bin piggyback-proxy --target armv7-unknown-linux-musleabi
+          ./cross build --release --bin piggyback-proxy --target armv7-unknown-linux-musleabi
           cp target/armv7-unknown-linux-musleabi/release/piggyback-proxy multiarch/linux/arm/v7
           cargo clean
-          cross build --release --bin piggyback --target x86_64-pc-windows-gnu  # For Windows we only build the cli
-          cp target/x86_64-pc-windows-gnu/release/piggyback piggyback-windows-amd64
+          ./cross build --release --bin piggyback --target x86_64-pc-windows-gnu  # For Windows we only build the cli
+          cp target/x86_64-pc-windows-gnu/release/piggyback.exe piggyback-windows-amd64.exe
 
       - name: Build and push image to GitHub Container Registry
         run: |
@@ -69,4 +70,4 @@ jobs:
           prerelease: false
           files: |
             piggyback-linux-amd64
-            piggyback-windows-amd64
+            piggyback-windows-amd64.exe
