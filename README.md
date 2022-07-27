@@ -11,7 +11,7 @@ You need:
 * A kubernetes cluster and your local kubectl context pointing to it (try `kubectl cluster-info` to verify)
 * The piggyback cli binary (download for your OS from the releases page)
 
-Then in a first terminal start the application you want to expose (we use a the included python http server for demonstration purposes):
+Then in a first terminal start the application you want to expose (we use the included python http server for demonstration purposes):
 
 ```bash
 python3 -m http.server 5000
@@ -31,3 +31,14 @@ kubectl run --restart=Never --rm -i --image alpine/curl curl -- http://piggyback
 ```
 
 If you then check your first terminal you will see that a request was received by the http server.
+
+You can stop and start the `piggyback port-forward` command, the proxy pod in kubernetes will remain until you delete it with `piggyback delete`.
+
+## Development
+
+For development and quick local testing you can use k3d. The following steps deploy the proxy into your local k3d cluster:
+
+* Build the proxy image: `docker build . -f Dockerfile-amd64local -t piggyback-proxy:dev`
+* Push the image into k3d: `k3d image import piggyback-proxy:dev`
+* Deploy the proxy: `cargo run --bin piggyback -- deploy --proxy-image piggyback-proxy:dev`
+* Run a port-forward: `cargo run --bin piggyback -- port-forward localhost:5000`

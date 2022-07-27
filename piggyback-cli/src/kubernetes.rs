@@ -23,8 +23,17 @@ async fn apis(namespace: Option<String>) -> (Api<Pod>, Api<Service>, String) {
     (pod_api, service_api, namespace)
 }
 
-pub async fn deploy_proxy(name: &str, namespace: Option<String>, port: u32) {
+pub async fn deploy_proxy(name: &str, namespace: Option<String>, port: u32, proxy_image: Option<String>) {
     let (pod_api, service_api, namespace) = apis(namespace).await;
+
+    let proxy_image = match proxy_image {
+        Some(image_name) => image_name,
+        None => format!("ghcr.io/swoehrl-mw/piggyback-proxy:{}", env!("GIT_TAG"))
+    };
+    let image_pull_policy = match std::env::var("PROXY_IMAGE_PULL_POLICY") {
+        Ok(value) => value,
+        Err(_) => "IfNotPresent".to_string()
+    };
 
     // create pod
     let pod: Pod = serde_json::from_value(serde_json::json!({
@@ -39,10 +48,11 @@ pub async fn deploy_proxy(name: &str, namespace: Option<String>, port: u32) {
             }
         },
         "spec": {
+            "terminationGracePeriodSeconds": 2,
             "containers": [{
                 "name": "piggyback",
-                "image": format!("ghcr.io/swoehrl-mw/piggyback-proxy:{}", env!("GIT_TAG")),
-                "imagePullPolicy": "Always",
+                "image": proxy_image,
+                "imagePullPolicy": image_pull_policy,
                 "env": [
                     {
                         "name": "PROXY_PORT",

@@ -1,12 +1,13 @@
 mod kubernetes;
 
-use piggyback_common::proxy_sockets;
 use argh::FromArgs;
+use piggyback_common::proxy_sockets;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use signal_hook::{
     consts::{SIGINT, SIGTERM},
     iterator::Signals,
 };
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::thread;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -49,6 +50,9 @@ pub struct PortForwardArgs {
     /// port to use for the proxy, defaults to 8080
     #[argh(option)]
     port: Option<u32>,
+    /// override the docker image to be used for the proxy pod
+    #[argh(option)]
+    proxy_image: Option<String>,
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
@@ -64,6 +68,9 @@ pub struct DeployArgs {
     /// port to use for the proxy, defaults to 8080
     #[argh(option)]
     port: Option<u32>,
+    /// override the docker image to be used for the proxy pod
+    #[argh(option)]
+    proxy_image: Option<String>,
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
@@ -81,8 +88,7 @@ pub struct DeleteArgs {
 #[derive(FromArgs, PartialEq, Debug)]
 #[argh(subcommand, name = "version")]
 /// show the version of piggyback
-pub struct VersionArgs {
-}
+pub struct VersionArgs {}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -94,7 +100,7 @@ async fn main() {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     thread::spawn(move || {
         for _ in signals.forever() {
-            std::process::exit(1);
+            std::process::exit(0);
         }
     });
 
@@ -110,7 +116,7 @@ async fn portforward(args: PortForwardArgs) {
     let name = args.name.unwrap_or_else(|| "piggyback".to_string());
     if args.deploy {
         let port = args.port.unwrap_or(8080);
-        kubernetes::deploy_proxy(&name, args.namespace.clone(), port).await;
+        kubernetes::deploy_proxy(&name, args.namespace.clone(), port, args.proxy_image).await;
     }
 
     // kubect-port-forward
@@ -145,7 +151,7 @@ async fn portforward(args: PortForwardArgs) {
 async fn deploy(args: DeployArgs) {
     let name = args.name.unwrap_or_else(|| "piggyback".to_string());
     let port = args.port.unwrap_or(8080);
-    kubernetes::deploy_proxy(&name, args.namespace, port).await;
+    kubernetes::deploy_proxy(&name, args.namespace, port, args.proxy_image).await;
 }
 
 async fn delete(args: DeleteArgs) {
