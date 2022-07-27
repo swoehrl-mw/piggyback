@@ -24,6 +24,7 @@ enum CommandEnum {
     PortForward(PortForwardArgs),
     Deploy(DeployArgs),
     Delete(DeleteArgs),
+    Version(VersionArgs),
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
@@ -77,6 +78,12 @@ pub struct DeleteArgs {
     namespace: Option<String>,
 }
 
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "version")]
+/// show the version of piggyback
+pub struct VersionArgs {
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let args: MainArgs = argh::from_env();
@@ -95,6 +102,7 @@ async fn main() {
         CommandEnum::PortForward(args) => portforward(args).await,
         CommandEnum::Deploy(args) => deploy(args).await,
         CommandEnum::Delete(args) => delete(args).await,
+        CommandEnum::Version(args) => version(args),
     }
 }
 
@@ -143,4 +151,8 @@ async fn deploy(args: DeployArgs) {
 async fn delete(args: DeleteArgs) {
     let name = args.name.unwrap_or_else(|| "piggyback".to_string());
     kubernetes::delete_proxy(&name, args.namespace).await;
+}
+
+fn version(_args: VersionArgs) {
+    println!("piggyback version {}", env!("GIT_TAG"));
 }

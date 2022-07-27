@@ -37,30 +37,25 @@ jobs:
 
       - name: Cross-compile binaries
         run: |
+          mkdir -p multiarch/linux/arm
           cross build --release --target x86_64-unknown-linux-musl # For amd64 we build proxy and cli binaries
+          cp target/x86_64-unknown-linux-musl/release/piggyback piggyback-linux-amd64
+          cp target/x86_64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/amd64
           cargo clean
           cross build --release --bin piggyback-proxy --target aarch64-unknown-linux-musl
+          cp target/aarch64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/arm64
           cargo clean
           cross build --release --bin piggyback-proxy --target armv7-unknown-linux-musleabi
+          cp target/armv7-unknown-linux-musleabi/release/piggyback-proxy multiarch/linux/arm/v7
           cargo clean
           cross build --release --bin piggyback --target x86_64-pc-windows-gnu  # For Windows we only build the cli
-
-          # Prepare binaries for release artifacts
-          cp target/x86_64-unknown-linux-musl/release/piggyback piggyback-linux-amd64
           cp target/x86_64-pc-windows-gnu/release/piggyback piggyback-windows-amd64
-
 
       - name: Build and push image to GitHub Container Registry
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
           TAG=${GITHUB_REF//refs\/tags\/v}
-
-          # Prepare structure for docker build
-          mkdir -p multiarch/linux/arm
-          cp target/x86_64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/amd64
-          cp target/armv7-unknown-linux-musleabi/release/piggyback-proxy multiarch/linux/arm/v7
-          cp target/aarch64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/arm64
 
           docker buildx build --platform="linux/amd64,linux/arm/v7,linux/arm64" . -f Dockerfile --push -t $IMAGE_ID:$TAG
 

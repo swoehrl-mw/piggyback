@@ -41,7 +41,7 @@ pub async fn deploy_proxy(name: &str, namespace: Option<String>, port: u32) {
         "spec": {
             "containers": [{
                 "name": "piggyback",
-                "image": "swoehrl/piggyback:dev",
+                "image": format!("ghcr.io/swoehrl-mw/piggyback-proxy:{}", env!("GIT_TAG")),
                 "imagePullPolicy": "Always",
                 "env": [
                     {
