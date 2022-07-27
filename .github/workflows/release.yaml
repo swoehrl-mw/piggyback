@@ -38,7 +38,7 @@ jobs:
 
       - name: Cross-compile binaries
         run: |
-          mkdir -p multiarch/linux/arm
+          mkdir -p multiarch/linux/arm  # Structure so that docker can pull in binaries according to buildx platform names
           ./cross build --release --target x86_64-unknown-linux-musl # For amd64 we build proxy and cli binaries
           cp target/x86_64-unknown-linux-musl/release/piggyback piggyback-linux-amd64
           cp target/x86_64-unknown-linux-musl/release/piggyback-proxy multiarch/linux/amd64
@@ -71,3 +71,30 @@ jobs:
           files: |
             piggyback-linux-amd64
             piggyback-windows-amd64.exe
+
+  macos-cli:
+    name: Build macos binary
+    runs-on: macos-latest
+    steps:
+
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build binary
+        run: |
+          cargo build --release --bin piggyback --target x86_64-apple-darwin
+          cp target/x86_64-apple-darwin/release/piggyback piggyback-macos-amd64
+
+      - name: Upload binary to release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+          files: |
+            piggyback-macos-amd64
